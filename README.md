@@ -15,6 +15,7 @@
     - 学習
       - 要した時間: 約15分
       - ログ: 
+
 ```
 step 0, training accuracy 0.02
 step 1, training accuracy 0.0166667
@@ -68,6 +69,7 @@ step 198, training accuracy 1
 step 199, training accuracy 1
 test accuracy 0.02
 ```
+
       - 正解率: 2 %
       - ![正解率とloss率のグラフ](https://github.com/egroup-develop/TensorFlow/tree/feature-tensorboard/imgs/1_グラフ.png)
       - ![NNグラフ](https://github.com/egroup-develop/TensorFlow/tree/feature-tensorboard/imgs/1_NNグラフ.png)
