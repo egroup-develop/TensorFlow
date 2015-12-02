@@ -22,7 +22,7 @@ flags.DEFINE_integer('batch_size', 10, 'Batch size'
                      'Must divide evenly into the dataset sizes.')
 flags.DEFINE_float('learning_rate', 1e-4, 'Initial learning rate.')
 
-################ interface ####################
+################ inference ####################
 # 入力: 28x28x3(縦画素x横画素x枚数)
 # 畳み込み: 2回
 # プーリング: 2回
@@ -103,7 +103,7 @@ def inference(images_placeholder, keep_prob):
     return y_conv
 
 ####################### loss ##########################
-# interface()から得た予測値からバックプロパゲーションに使う損失関数(誤差)を計算
+# inference()から得た予測値からバックプロパゲーションに使う損失関数(誤差)を計算
 #######################################################
 def loss(logits, labels):
     """ lossを計算する関数
