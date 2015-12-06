@@ -16,6 +16,9 @@ do
 
         for f in "$d"/*
         do
-                convert $f -resize x28 -resize '28x<' -gravity center -crop 28x28+0+0 +repage ${f%.*}_convert.jpeg
+                if [ ${f##*.} = jpeg ]
+                then
+                	convert $f -resize x28 -resize '28x<' -gravity center -crop 28x28+0+0 +repage ${f%.*}_convert.jpeg
+                fi
         done
 done
