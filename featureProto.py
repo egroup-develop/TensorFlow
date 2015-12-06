@@ -1,21 +1,27 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# modelの構築はinference, loss, training, evaluationの4つのサブルーチンに分けるのが普通
+# グラフはinference, loss, trainingで構築
+# http://www.tensorflow.org/tutorials/mnist/tf/index.html
 import sys
 import cv2
 import numpy as np
 import tensorflow as tf
 import tensorflow.python.platform
 
-#多値分類ということで
-NUM_CLASSES = 100
+# 多値分類ということで
+NUM_CLASSES = 245
+# 画像の縦/横画素数(S)
 IMAGE_SIZE = 28
+# SxSxNでNは枚数. 入力画像がグレースケールならN=1, カラーならRGB計3枚でN=3
 IMAGE_PIXELS = IMAGE_SIZE*IMAGE_SIZE*3
 
+# flagsを使ってmodelで使用する定数をハンドリングする
 flags = tf.app.flags
 FLAGS = flags.FLAGS
 flags.DEFINE_string('train', 'train.txt', 'File name of train data')
 flags.DEFINE_string('test', 'test.txt', 'File name of train data')
-#tensorboardに出力するファイルの置き場
+# tensorboardに出力するファイルの置き場
 flags.DEFINE_string('train_dir', '/tmp/data', 'Directory to put the training data.')
 flags.DEFINE_integer('max_steps', 200, 'Number of steps to run trainer.')
 flags.DEFINE_integer('batch_size', 10, 'Batch size'
@@ -23,21 +29,15 @@ flags.DEFINE_integer('batch_size', 10, 'Batch size'
 flags.DEFINE_float('learning_rate', 1e-4, 'Initial learning rate.')
 
 ################ inference ####################
+# 予測モデルを作成する関数
+# 引数: 画像のplaceholder, dropout率のplaceholder
+# 返り値: 各クラスの確率のようなもの(出力の予測を含むTensor)
 # 入力: 28x28x3(縦画素x横画素x枚数)
 # 畳み込み: 2回
 # プーリング: 2回
-# 内積(全結合層)->ソフトマックス->Loss出力
+# 内積(全結合層)->ソフトマックス関数->Loss出力
 ###############################################
 def inference(images_placeholder, keep_prob):
-    """ 予測モデルを作成する関数
-
-    引数: 
-      images_placeholder: 画像のplaceholder
-      keep_prob: dropout率のplaceholder
-
-    返り値:
-      y_conv: 各クラスの確率(のようなもの)
-    """
     # 重みを標準偏差0.1の正規分布で初期化
     def weight_variable(shape):
       initial = tf.truncated_normal(shape, stddev=0.1)
@@ -60,6 +60,8 @@ def inference(images_placeholder, keep_prob):
     # 入力を28x28x3に変形
     x_image = tf.reshape(images_placeholder, [-1, 28, 28, 3])
 
+    # with tf.name_scope('hidden1') as scope:
+    #   各層は一意のtf.name_scopeの下に作成される. 引数はscope内で作成されるアイテムへのプレフィクスとなる
     # 畳み込み層1の作成
     with tf.name_scope('conv1') as scope:
         W_conv1 = weight_variable([5, 5, 3, 32])
@@ -103,20 +105,12 @@ def inference(images_placeholder, keep_prob):
     return y_conv
 
 ####################### loss ##########################
+# loss関数
 # inference()から得た予測値からバックプロパゲーションに使う損失関数(誤差)を計算
+# 引数: ロジットのtensor(float - [batch_size, NUM_CLASSES]), ラベルのtensor(int32 - [batch_size, NUM_CLASSES])
+# 返り値: 交差エントロピーのtensor, float 
 #######################################################
 def loss(logits, labels):
-    """ lossを計算する関数
-
-    引数:
-      logits: ロジットのtensor, float - [batch_size, NUM_CLASSES]
-      labels: ラベルのtensor, int32 - [batch_size, NUM_CLASSES]
-
-    返り値:
-      cross_entropy: 交差エントロピーのtensor, float
-
-    """
-
     # 交差エントロピーの計算
     cross_entropy = -tf.reduce_sum(labels*tf.log(logits))
     # TensorBoardで表示するよう指定
@@ -124,45 +118,29 @@ def loss(logits, labels):
     return cross_entropy
 
 ######################### training ####################
-# 学習の実行. loss()で得た誤差を逆伝搬してネットワークを学習させる
+# 学習の実行
+# loss()で得た誤差を逆伝搬してネットワークを学習させる. 学習のop(node)を定義する
+# 引数: 損失のTensor(loss()の結果), 学習係数
+# 返り値: 学習のために定義したop
 #######################################################
 def training(loss, learning_rate):
-    """ 訓練のopを定義する関数
-
-    引数:
-      loss: 損失のtensor, loss()の結果
-      learning_rate: 学習係数
-
-    返り値:
-      train_step: 訓練のop
-
-    """
-
     #AdamOptimizerは全体のネットを最適化(自動微分のような)してくれる便利な関数
     train_step = tf.train.AdamOptimizer(learning_rate).minimize(loss)
     return train_step
 
 ############################ 正解率の計算 ######################
-# そういうこと
+# 正解率(accuracy)を計算する関数
+# 引数: inference()の結果, ラベルのTensor(int32 - [batch_size, NUM_CLASSES])
+# 返り値: 正解率(float)
 ################################################################
 def accuracy(logits, labels):
-    """ 正解率(accuracy)を計算する関数
-
-    引数: 
-      logits: inference()の結果
-      labels: ラベルのtensor, int32 - [batch_size, NUM_CLASSES]
-
-    返り値:
-      accuracy: 正解率(float)
-
-    """
     correct_prediction = tf.equal(tf.argmax(logits, 1), tf.argmax(labels, 1))
     accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
     tf.scalar_summary("accuracy", accuracy)
     return accuracy
 
 ############### データセットの読み込み・学習の実行 #############
-# TensorFlowにはdecode_pngのような画像を読み込むための関数が用意されている
+# TensorFlowにはdecode_pngのような(jpegも然り)画像を読み込むための関数が用意されている
 # http://www.tensorflow.org/api_docs/python/image.html#decode_png
 # 今回はこれを使わずcv2で読み込む
 ################################################################
