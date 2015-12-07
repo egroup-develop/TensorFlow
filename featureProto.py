@@ -159,7 +159,7 @@ if __name__ == '__main__':
         img = cv2.resize(img, (28, 28))
         # 一列にした後、0-1のfloat値にする
         train_image.append(img.flatten().astype(np.float32)/255.0)
-        # ラベルを1-of-k方式で用意する
+        # ラベルを1-of-n方式で用意する
         tmp = np.zeros(NUM_CLASSES)
         tmp[int(l[1])] = 1
         train_label.append(tmp)

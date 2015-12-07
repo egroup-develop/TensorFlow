@@ -42,6 +42,8 @@ LogirlImages/6/image_3_convert.jpeg 6
 LogirlImages/6/image_3_origin_convert.jpeg 6
 LogirlImages/7/image_1_convert.jpeg 7
 LogirlImages/7/image_1_origin_convert.jpeg 7
+LogirlImages/7/image_2_convert.jpeg 7
+LogirlImages/7/image_2_origin_convert.jpeg 7
 LogirlImages/7/image_3_convert.jpeg 7
 LogirlImages/7/image_3_origin_convert.jpeg 7
 LogirlImages/8/image_1_convert.jpeg 8
