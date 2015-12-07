@@ -80,3 +80,31 @@ test accuracy 0.02
     - まあNNを組む練習なので動いたし当然だけど訓練データはしっかり正解しているようなのでよし
     - データセットを超増やして正規化もすればよい分類器ができる予感
     - 同じデータセットでの学習だったがcaffeより3倍くらい早かったかも
+
+- 第2回
+  - データセット: デ**ーロ**ルの100人. 1人につき8枚
+    - 訓練: 600枚
+    - 評価: 200枚
+    - 正規化: ImageMagickで行った
+  - ニューラルネット
+    - 畳み込み 2層
+    - プーリング 2層
+    - 活性化関数fc 2層
+      - fc1層はドロップアウトさせている
+      - fc2層の値を取り出してソフトマックス関数にて正規化->これが特徴量
+      - 入力は28x28x3
+      - ステップ数は200
+    - 学習
+      - 要した時間: 約40分
+      - ログ:
+        - step 0, training accuracy 0.02
+step 1, training accuracy 0.0366667
+step 2, training accuracy 0.0783333
+step 3, training accuracy 0.145
+step 4, training accuracy 0.228333
+...
+step 197, training accuracy 1
+step 198, training accuracy 1
+step 199, training accuracy 1
+test accuracy 0.16
+      - 正解率: 16 %
