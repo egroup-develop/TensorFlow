@@ -7,20 +7,15 @@ import tensorflow as tf
 import cv2
 
 
-NUM_CLASSES = 100
+NUM_CLASSES = 245
 IMAGE_SIZE = 28
 IMAGE_PIXELS = IMAGE_SIZE*IMAGE_SIZE*3
 
+####################モデルを作成する関数#####################
+# 引数: 画像のplaceholder, dropout率のplace_holder
+# 返り値: モデルの計算結果
+#############################################################
 def inference(images_placeholder, keep_prob):
-    """ モデルを作成する関数
-
-    引数: 
-      images_placeholder: inputs()で作成した画像のplaceholder
-      keep_prob: dropout率のplace_holder
-
-    返り値:
-      cross_entropy: モデルの計算結果
-    """
     def weight_variable(shape):
       initial = tf.truncated_normal(shape, stddev=0.1)
       return tf.Variable(initial)
@@ -72,6 +67,7 @@ def inference(images_placeholder, keep_prob):
 
 if __name__ == '__main__':
     test_image = []
+    name = sys.argv
     for i in range(1, len(sys.argv)):
         img = cv2.imread(sys.argv[i])
         img = cv2.resize(img, (28, 28))
@@ -88,10 +84,37 @@ if __name__ == '__main__':
     saver = tf.train.Saver()
     sess.run(tf.initialize_all_variables())
     #分類器として使うmodelを指定する
-    saver.restore(sess, "model.ckpt")
+    saver.restore(sess, "model_245_1470_490_8per.ckpt")
 
     for i in range(len(test_image)):
         pred = np.argmax(logits.eval(feed_dict={ 
             images_placeholder: [test_image[i]],
             keep_prob: 1.0 })[0])
-        print pred
+        print str(name[i + 1]) + "は" + str(pred) + "さんに最も近いです"
+
+        # 特徴の近さ確率をノード数分
+        feature = logits.eval(feed_dict={
+            images_placeholder: [test_image[i]],
+            keep_prob: 1.0 })[0]
+
+        featureSorted = feature
+        featureSorted = np.sort(featureSorted)
+        featureSorted = featureSorted[-1::-1]
+        pred2 = featureSorted[1]
+        pred3 = featureSorted[2]
+        pred4 = featureSorted[3]
+        pred5 = featureSorted[4]
+        pred6 = featureSorted[5]
+
+        for index, value in enumerate(feature):
+          if pred2 == value:
+            print "2番目に" + str(index) + "さんに近いです"
+          elif pred3 == value:
+            print "3番目に" + str(index) + "さんに近いです"
+          elif pred4 == value:
+            print "4番目に" + str(index) + "さんに近いです"
+          elif pred5 == value:
+            print "5番目に" + str(index) + "さんに近いです"
+          elif pred6 == value:
+            print "6番目に" + str(index) + "さんに近いです"
+        print "\n"
