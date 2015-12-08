@@ -1,8 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# modelの構築はinference, loss, training, evaluationの4つのサブルーチンに分けるのが普通
-# グラフはinference, loss, trainingで構築
+# modelの構築はinference, loss, trainingの3つのサブルーチンに分けるのが普通
 # http://www.tensorflow.org/tutorials/mnist/tf/index.html
+# 本処理は下記2ファイルの統合版
+# https://github.com/tensorflow/tensorflow/blob/master/tensorflow/g3doc/tutorials/mnist/fully_connected_feed.py
+# https://github.com/tensorflow/tensorflow/blob/master/tensorflow/g3doc/tutorials/mnist/mnist.py
+#  2015/12/08現在: https://github.com/tensorflow/tensorflow/tree/master/tensorflow/examples/tutorials/mnist
+# MINIST for Expertsでは28x28x1->28x28x32->14x14x32->14x14x64->7x7x64->1024->10
+# 参考: http://qiita.com/supersaiakujin/items/bc05b9f329aca48329ac
+
 import sys
 import cv2
 import numpy as np
@@ -20,16 +26,17 @@ IMAGE_PIXELS = IMAGE_SIZE*IMAGE_SIZE*3
 flags = tf.app.flags
 FLAGS = flags.FLAGS
 flags.DEFINE_string('train', 'train.txt', 'File name of train data')
-flags.DEFINE_string('test', 'test.txt', 'File name of train data')
+flags.DEFINE_string('test', 'test.txt', 'File name of test data')
 # tensorboardに出力するファイルの置き場
 flags.DEFINE_string('train_dir', '/tmp/data', 'Directory to put the training data.')
-flags.DEFINE_integer('max_steps', 200, 'Number of steps to run trainer.')
-flags.DEFINE_integer('batch_size', 10, 'Batch size'
+flags.DEFINE_integer('max_steps', 100, 'Number of steps to run trainer.')
+flags.DEFINE_integer('batch_size', 10, 'Batch size.  '
                      'Must divide evenly into the dataset sizes.')
+# 学習率は0.01
 flags.DEFINE_float('learning_rate', 1e-4, 'Initial learning rate.')
 
 ################ inference ####################
-# 予測モデルを作成する関数
+# 予測モデルを作成する関数. NNの構想
 # 引数: 画像のplaceholder, dropout率のplaceholder
 # 返り値: 各クラスの確率のようなもの(出力の予測を含むTensor)
 # 入力: 28x28x3(縦画素x横画素x枚数)
@@ -48,16 +55,16 @@ def inference(images_placeholder, keep_prob):
       initial = tf.constant(0.1, shape=shape)
       return tf.Variable(initial)
 
-    # 畳み込み層の作成
+    # 畳み込み層の作成(nn.conv2dの2dは2-D convolutionの意)
     def conv2d(x, W):
       return tf.nn.conv2d(x, W, strides=[1, 1, 1, 1], padding='SAME')
 
-    # プーリング層の作成
+    # プーリング層の作成(プーリングは3種用意されている)
     def max_pool_2x2(x):
       return tf.nn.max_pool(x, ksize=[1, 2, 2, 1],
                             strides=[1, 2, 2, 1], padding='SAME')
     
-    # 入力を28x28x3に変形
+    # 入力(テンソル)を28x28x3に変形
     x_image = tf.reshape(images_placeholder, [-1, 28, 28, 3])
 
     # with tf.name_scope('hidden1') as scope:
@@ -107,7 +114,7 @@ def inference(images_placeholder, keep_prob):
 ####################### loss ##########################
 # loss関数
 # inference()から得た予測値からバックプロパゲーションに使う損失関数(誤差)を計算
-# 引数: ロジットのtensor(float - [batch_size, NUM_CLASSES]), ラベルのtensor(int32 - [batch_size, NUM_CLASSES])
+# 引数: ロジットのtensor(float - [batch_size, NUM_CLASSES] = y_conv), ラベルのtensor(int32 - [batch_size, NUM_CLASSES])
 # 返り値: 交差エントロピーのtensor, float 
 #######################################################
 def loss(logits, labels):
@@ -120,22 +127,23 @@ def loss(logits, labels):
 ######################### training ####################
 # 学習の実行
 # loss()で得た誤差を逆伝搬してネットワークを学習させる. 学習のop(node)を定義する
-# 引数: 損失のTensor(loss()の結果), 学習係数
+# 引数: 損失のTensor(loss()の結果cross_entropy), 学習係数
 # 返り値: 学習のために定義したop
 #######################################################
 def training(loss, learning_rate):
-    #AdamOptimizerは全体のネットを最適化(自動微分のような)してくれる便利な関数
+    # AdamOptimizerは全体のネットを最適化(自動微分のような)してくれる関数
     train_step = tf.train.AdamOptimizer(learning_rate).minimize(loss)
     return train_step
 
 ############################ 正解率の計算 ######################
 # 正解率(accuracy)を計算する関数
-# 引数: inference()の結果, ラベルのTensor(int32 - [batch_size, NUM_CLASSES])
+# 引数: inference()の結果y_conv, ラベルのTensor(int32 - [batch_size, NUM_CLASSES])
 # 返り値: 正解率(float)
 ################################################################
 def accuracy(logits, labels):
     correct_prediction = tf.equal(tf.argmax(logits, 1), tf.argmax(labels, 1))
     accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
+    # 正解率をsummaryし, tf.train.SummaryWriterでそれを書き出す
     tf.scalar_summary("accuracy", accuracy)
     return accuracy
 
@@ -184,6 +192,7 @@ if __name__ == '__main__':
     test_label = np.asarray(test_label)
     f.close()
     
+    # VariableをGraphに追加するにはwith tf.Graph().as_default():スコープ内で宣言もしくは呼び出す必要がある
     with tf.Graph().as_default():
         # 画像を入れる仮のTensor
         images_placeholder = tf.placeholder("float", shape=(None, IMAGE_PIXELS))
@@ -201,9 +210,9 @@ if __name__ == '__main__':
         # 精度の計算
         acc = accuracy(logits, labels_placeholder)
 
-        # 保存の準備
+        # 保存の準備. Create a saver for writing training checkpoints
         saver = tf.train.Saver()
-        # Sessionの作成
+        # Sessionの作成. Create a session for running Ops on the Graph
         sess = tf.Session()
         # 変数の初期化
         sess.run(tf.initialize_all_variables())
@@ -222,7 +231,7 @@ if __name__ == '__main__':
                   labels_placeholder: train_label[batch:batch+FLAGS.batch_size],
                   keep_prob: 0.5})
 
-            # 1 step終わるたびに精度を計算する
+            # 1 step終わるたびに精度を計算する. 対訓練データ
             train_accuracy = sess.run(acc, feed_dict={
                 images_placeholder: train_image,
                 labels_placeholder: train_label,
@@ -236,7 +245,7 @@ if __name__ == '__main__':
                 keep_prob: 1.0})
             summary_writer.add_summary(summary_str, step)
 
-    # 訓練が終了したらテストデータに対する精度を表示
+    # 訓練が終了したらテストデータに対する精度を表示. 対評価データ
     print "test accuracy %g"%sess.run(acc, feed_dict={
         images_placeholder: test_image,
         labels_placeholder: test_label,
