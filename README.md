@@ -225,3 +225,22 @@ Caused by op u'gradients/conv1/Relu_grad/conv1/Relu/CheckNumerics', defined at:
     self._traceback = _extract_stack()
 ```
     - エラー
+
+
+- 現段階でのエリートモデル(第5回で生まれた分類器)を使って推薦部分を作ろうとおもう
+  - とりあえずdivide.pyを使って, 分類器に投入した画像に近い画像を5枚出力させ, 目視確認してみた
+  - 一番はっきり顔を見せてくれた5ちゃんを使って
+    - ![5ちゃんのある1枚は順番に](https://github.com/egroup-develop/TensorFlow/tree/feature-tensorboard/imgs/5の4.jpeg)
+      - ![この子に似ている](https://github.com/egroup-develop/TensorFlow/tree/feature-tensorboard/imgs/172の1.jpeg)
+      - ![この子に似ている](https://github.com/egroup-develop/TensorFlow/tree/feature-tensorboard/imgs/216の2.jpeg)
+      - ![この子に似ている](https://github.com/egroup-develop/TensorFlow/tree/feature-tensorboard/imgs/181の3.jpeg)
+      - ![この子に似ている](https://github.com/egroup-develop/TensorFlow/tree/feature-tensorboard/imgs/200の4.jpeg)
+      - ![この子に似ている](https://github.com/egroup-develop/TensorFlow/tree/feature-tensorboard/imgs/143の3.jpeg)
+  - 所感
+    - ほーわからなくもない
+    - しかし一人当たり8枚しか教師として与えていないのにこの結果はすごいのでは...?
+    - これ絶対おもしろいサービスになる
+    - 一つのクラスに対してデータの数さえ十分あれば精度はよくなる. パラメータは現段階モデルが最高だと思う. あとは数. 動画ですね!!!
+
+
+
