@@ -5,7 +5,7 @@ import json
 import os
 import sys
 
-u = ''
+u = ''h
 title = "DailyLogirlImages"
 nameStr = u'#!/usr/bin/env python' + u'\n' + u'# -*- coding: utf-8 -*-' + u'\n' + u'import sys' + u'\n' + u'if __name__ == "__main__":' + u'\n' + u'  a = {'
 log = ""
@@ -62,7 +62,6 @@ try:
       name += titles[i]
 
     print u"名前: " + name
-    nameList.append(name)
 
     index = titles[len(titles) - 3:]
     if index[0] == u"0":
@@ -70,6 +69,9 @@ try:
         index = index[2]    
       else:
         index = index[1] + index[2]
+
+    nameList.append(str(int(index) - 1)) 
+    nameList.append(name)
 
     print "index: " + index
 
@@ -103,9 +105,12 @@ try:
 
   for i in range(len(nameList)):
     if i == len(nameList) - 1:
-      nameStr += u'"' + str(int(index) - 1) + u'"' + u':' + u'"' + nameList[i] + u'"}' + u'\n' + u'  print str(a[int(sys.argv[1])])' + u'\n'
+      nameStr += u'"' + nameList[i] + u'"}' + u'\n' + u'  print str(a[int(sys.argv[1])])' + u'\n'
+    elif i % 2 == 0:
+      nameStr += u'"' + nameList[i]  + u'"' + u':'
     else:
-      nameStr += u'"' + str(int(index) - 1) + u'"' + u':' + u'"' + nameList[i] + u'"' + u', '
+      nameStr += nameList[i] + u'"' + u', '
+ 
 
   try:
     os.chdir("../")
