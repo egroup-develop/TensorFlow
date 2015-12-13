@@ -18,7 +18,10 @@ do
         do
                 if [ ${f##*.} = jpeg ]
                 then
-                	convert $f -resize x28 -resize '28x<' -gravity center -crop 28x28+0+0 +repage ${f%.*}_convert.jpeg
+                	#convert $f -resize x28 -resize '28x<' -gravity center -crop 28x28+0+0 +repage ${f%.*}_convert.jpeg
+                	convert $f -resize x128 -resize '128x<' -gravity center -crop 128x128+0+0 +repage ${f%.*}_convert.jpeg
+                	#convert $f -resize x64 -resize '64x<' -gravity center -crop 64x64+0+0 +repage ${f%.*}_convert.jpeg
+                	#convert $f -resize x32 -resize '32x<' -gravity center -crop 32x32+0+0 +repage ${f%.*}_convert.jpeg
                 fi
         done
 done
