@@ -5,10 +5,10 @@ import sys
 trainTitle = "train.txt"
 testTitle = "test.txt"
 
-#データセットテキストファイルに変換したい2階層ディレクトリを引数に与える
+#データセットテキストファイルに変換したい2階層ディレクトリを引数に与える. 末尾スラッシュありで
 os.chdir(sys.argv[1])
 
-for i in range(0, 245):
+for i in range(0, 328):
   trainText = ""
   testText = ""
   dirName = str(i)
@@ -18,10 +18,13 @@ for i in range(0, 245):
 #  j = 0
   eval = 0
   for file in files:
-    if file == "image_4_convert.jpeg" or file == "image_4_origin_convert.jpeg":
-      testText += sys.argv[1] + dirName + "/" + file + " " + dirName + "\n"
-      eval = 1
-    elif file.endswith("convert.jpeg", 15, len(file)) or file.endswith("convert.jpeg", 8, len(file)):
+    if file.find("image_4_") > -1:
+      if file.find("_convert_") > -1:
+        if file.find("rotated.jpeg") > -1:
+          testText += sys.argv[1] + dirName + "/" + file + " " + dirName + "\n"
+          eval = 1
+#    elif file.endswith("convert.jpeg", 15, len(file)) or file.endswith("convert.jpeg", 8, len(file)):
+    elif file.endswith("rotated.jpeg"):
       if eval == 0:
         trainText += sys.argv[1] + dirName + "/" + file + " " + dirName + "\n"
     eval = 0
