@@ -257,4 +257,5 @@ Caused by op u'gradients/conv1/Relu_grad/conv1/Relu/CheckNumerics', defined at:
     - バッチサイズ 100
   - 結果
     - 音無くPCがシャットダウンした...(メモリ4GBのMBA)
-    - Out of Memoryが起因のよう
+    - これまでのエラーと同じなんだが, AdamOptimizerでのエラーみたい. 学習率を低くしろだとか初期重みを変えろだとかいろいろ言われている. とにかく言えることはプログラムで解決する問題ではないみたい..?
+      - ()[https://github.com/tensorflow/tensorflow/issues/323] 
