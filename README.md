@@ -259,3 +259,82 @@ Caused by op u'gradients/conv1/Relu_grad/conv1/Relu/CheckNumerics', defined at:
     - 音無くPCがシャットダウンした...(メモリ4GBのMBA)
     - これまでのエラーと同じなんだが, AdamOptimizerでのエラーみたい. 学習率を低くしろだとか初期重みを変えろだとかいろいろ言われている. とにかく言えることはプログラムで解決する問題ではないみたい..?
       - (Tensorflow crashed when using AdamOptimizer)[https://github.com/tensorflow/tensorflow/issues/323] 
+- 第8回
+  - 再びデーロル245人で. 1人につき, 正規化した画像を45度-135度まで9度ずつずらした画像11枚
+    - 訓練 8085
+    - 評価 2695
+  - ニューラルネット
+    - 第5回同様
+  - 結果
+    - step 0, training accuracy 0.00693584
+step 1, training accuracy 0.0148625
+step 2, training accuracy 0.0132524
+step 3, training accuracy 0.0158534
+step 4, training accuracy 0.02378
+step 5, training accuracy 0.0282388
+step 6, training accuracy 0.0226653
+step 7, training accuracy 0.019569
+step 8, training accuracy 0.0261333
+step 9, training accuracy 0.0294773
+step 10, training accuracy 0.0313351
+step 11, training accuracy 0.0416151
+step 12, training accuracy 0.0497894
+step 13, training accuracy 0.0465692
+step 14, training accuracy 0.0574684
+step 15, training accuracy 0.0666336
+step 16, training accuracy 0.0718355
+step 17, training accuracy 0.0755512
+step 18, training accuracy 0.0848402
+W tensorflow/core/common_runtime/executor.cc:1027] 0x7fdf49c00b90 Compute status: Invalid argument: ReluGrad input is not finite. : Tensor had NaN values
+	 [[Node: gradients/conv1/Relu_grad/conv1/Relu/CheckNumerics = CheckNumerics[T=DT_FLOAT, message="ReluGrad input is not finite.", _device="/job:localhost/replica:0/task:0/cpu:0"](conv1/add)]]
+W tensorflow/core/common_runtime/executor.cc:1027] 0x7fdf49c00b90 Compute status: Invalid argument: ReluGrad input is not finite. : Tensor had NaN values
+	 [[Node: gradients/conv2/Relu_grad/conv2/Relu/CheckNumerics = CheckNumerics[T=DT_FLOAT, message="ReluGrad input is not finite.", _device="/job:localhost/replica:0/task:0/cpu:0"](conv2/add)]]
+W tensorflow/core/common_runtime/executor.cc:1027] 0x7fdf49c00b90 Compute status: Invalid argument: ReluGrad input is not finite. : Tensor had NaN values
+	 [[Node: gradients/fc1/Relu_grad/fc1/Relu/CheckNumerics = CheckNumerics[T=DT_FLOAT, message="ReluGrad input is not finite.", _device="/job:localhost/replica:0/task:0/cpu:0"](fc1/add)]]
+Traceback (most recent call last):
+  File "featureProto.py", line 245, in <module>
+    keep_prob: 0.5})
+  File "/Library/Python/2.7/site-packages/tensorflow/python/client/session.py", line 345, in run
+    results = self._do_run(target_list, unique_fetch_targets, feed_dict_string)
+  File "/Library/Python/2.7/site-packages/tensorflow/python/client/session.py", line 419, in _do_run
+    e.code)
+tensorflow.python.framework.errors.InvalidArgumentError: ReluGrad input is not finite. : Tensor had NaN values
+	 [[Node: gradients/conv1/Relu_grad/conv1/Relu/CheckNumerics = CheckNumerics[T=DT_FLOAT, message="ReluGrad input is not finite.", _device="/job:localhost/replica:0/task:0/cpu:0"](conv1/add)]]
+Caused by op u'gradients/conv1/Relu_grad/conv1/Relu/CheckNumerics', defined at:
+  File "featureProto.py", line 222, in <module>
+    train_op = training(loss_value, FLAGS.learning_rate)
+  File "featureProto.py", line 138, in training
+    train_step = tf.train.AdamOptimizer(learning_rate).minimize(loss)
+  File "/Library/Python/2.7/site-packages/tensorflow/python/training/optimizer.py", line 165, in minimize
+    gate_gradients=gate_gradients)
+  File "/Library/Python/2.7/site-packages/tensorflow/python/training/optimizer.py", line 205, in compute_gradients
+    loss, var_list, gate_gradients=(gate_gradients == Optimizer.GATE_OP))
+  File "/Library/Python/2.7/site-packages/tensorflow/python/ops/gradients.py", line 414, in gradients
+    in_grads = _AsList(grad_fn(op_wrapper, *out_grads))
+  File "/Library/Python/2.7/site-packages/tensorflow/python/ops/nn_grad.py", line 107, in _ReluGrad
+    t = _VerifyTensor(op.inputs[0], op.name, "ReluGrad input is not finite.")
+  File "/Library/Python/2.7/site-packages/tensorflow/python/ops/nn_grad.py", line 100, in _VerifyTensor
+    verify_input = array_ops.check_numerics(t, message=msg)
+  File "/Library/Python/2.7/site-packages/tensorflow/python/ops/gen_array_ops.py", line 48, in check_numerics
+    name=name)
+  File "/Library/Python/2.7/site-packages/tensorflow/python/ops/op_def_library.py", line 633, in apply_op
+    op_def=op_def)
+  File "/Library/Python/2.7/site-packages/tensorflow/python/framework/ops.py", line 1710, in create_op
+    original_op=self._default_original_op, op_def=op_def)
+  File "/Library/Python/2.7/site-packages/tensorflow/python/framework/ops.py", line 988, in __init__
+    self._traceback = _extract_stack()
+
+...which was originally created as op u'conv1/Relu', defined at:
+  File "featureProto.py", line 218, in <module>
+    logits = inference(images_placeholder, keep_prob)
+  File "featureProto.py", line 77, in inference
+    h_conv1 = tf.nn.relu(conv2d(x_image, W_conv1) + b_conv1)
+  File "/Library/Python/2.7/site-packages/tensorflow/python/ops/gen_nn_ops.py", line 506, in relu
+    return _op_def_lib.apply_op("Relu", features=features, name=name)
+  File "/Library/Python/2.7/site-packages/tensorflow/python/ops/op_def_library.py", line 633, in apply_op
+    op_def=op_def)
+  File "/Library/Python/2.7/site-packages/tensorflow/python/framework/ops.py", line 1710, in create_op
+    original_op=self._default_original_op, op_def=op_def)
+  File "/Library/Python/2.7/site-packages/tensorflow/python/framework/ops.py", line 988, in __init__
+    self._traceback = _extract_stack()
+  - 適当な超パラメータを探す必要があるみたい..
