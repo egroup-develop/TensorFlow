@@ -5,11 +5,16 @@ import sys
 import numpy as np
 import tensorflow as tf
 import cv2
+from getName import getName
 
 
 NUM_CLASSES = 245
 IMAGE_SIZE = 28
 IMAGE_PIXELS = IMAGE_SIZE*IMAGE_SIZE*3
+
+flags = tf.app.flags
+FLAGS = flags.FLAGS
+#flags.DEFINE_string('use_model', 'model_245_1470_490_8per.ckpt', 'File name of model data.')
 
 ####################モデルを作成する関数#####################
 # 引数: 画像のplaceholder, dropout率のplace_holder
@@ -84,13 +89,14 @@ if __name__ == '__main__':
     saver = tf.train.Saver()
     sess.run(tf.initialize_all_variables())
     #分類器として使うmodelを指定する
+    #saver.restore(sess, FLAGS.use_model)
     saver.restore(sess, "model_245_1470_490_8per.ckpt")
 
     for i in range(len(test_image)):
         pred = np.argmax(logits.eval(feed_dict={ 
             images_placeholder: [test_image[i]],
             keep_prob: 1.0 })[0])
-        print str(name[i + 1]) + "は" + str(pred) + "さんに最も近いです"
+        print str(name[i + 1]) + "は" + str(pred) + " = " + str(getName(pred)) + " さんに最も近いです"
 
         # 特徴の近さ確率をノード数分
         feature = logits.eval(feed_dict={
@@ -106,15 +112,30 @@ if __name__ == '__main__':
         pred5 = featureSorted[4]
         pred6 = featureSorted[5]
 
+        print "つまり" + str(getName(pred)) + "さんは, "
+
+        rank = {}
+        j = 0
+
         for index, value in enumerate(feature):
           if pred2 == value:
-            print "2番目に" + str(index) + "さんに近いです"
+            rank["1"] = str(getName(index))
+            print "2番目に" + str(index) + " = " + str(getName(index)) + " さんに近いです"
           elif pred3 == value:
-            print "3番目に" + str(index) + "さんに近いです"
+            rank["2"] = str(getName(index))
+            print "3番目に" + str(index) + " = " + str(getName(index)) + " さんに近いです"
           elif pred4 == value:
-            print "4番目に" + str(index) + "さんに近いです"
+            rank["3"] = str(getName(index))
+            print "4番目に" + str(index) + " = " + str(getName(index)) + " さんに近いです"
           elif pred5 == value:
-            print "5番目に" + str(index) + "さんに近いです"
+            rank["4"] = str(getName(index))
+            print "5番目に" + str(index) + " = " + str(getName(index)) + " さんに近いです"
           elif pred6 == value:
-            print "6番目に" + str(index) + "さんに近いです"
+            rank["5"] = str(getName(index))
+            print "6番目に" + str(index) + " = " + str(getName(index)) + " さんに近いです"
         print "\n"
+
+        rank =  sorted(rank.items(), key=lambda x:x[0])
+
+        for i in range(len(rank)):
+          print rank[i][1]
