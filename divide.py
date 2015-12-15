@@ -6,6 +6,8 @@ import numpy as np
 import tensorflow as tf
 import cv2
 from getName import getName
+from getName import getIndex
+from PIL import Image
 
 
 NUM_CLASSES = 245
@@ -92,6 +94,7 @@ if __name__ == '__main__':
     #saver.restore(sess, FLAGS.use_model)
     saver.restore(sess, "model_245_1470_490_8per.ckpt")
 
+    ##### ランクづけ #####
     for i in range(len(test_image)):
         pred = np.argmax(logits.eval(feed_dict={ 
             images_placeholder: [test_image[i]],
@@ -115,8 +118,6 @@ if __name__ == '__main__':
         print "つまり" + str(getName(pred)) + "さんは, "
 
         rank = {}
-        j = 0
-
         for index, value in enumerate(feature):
           if pred2 == value:
             rank["1"] = str(getName(index))
@@ -135,7 +136,15 @@ if __name__ == '__main__':
             print "6番目に" + str(index) + " = " + str(getName(index)) + " さんに近いです"
         print "\n"
 
+        ##### 入力した画像の分類結果(クラス)から名前と画像を取得 #####
         rank =  sorted(rank.items(), key=lambda x:x[0])
-
         for i in range(len(rank)):
           print rank[i][1]
+          print getIndex(rank[i][1])
+
+          for j in range(4):
+            imagePath = "LogirlImages/" + getIndex(rank[i][1]) + "/" + "image_" + str(j+1) + "_origin.jpeg"
+            print imagePath
+            ##### 取得した画像を表示 #####
+            image = Image.open(imagePath)
+            image.show()
