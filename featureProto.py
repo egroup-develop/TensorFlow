@@ -16,7 +16,7 @@ import tensorflow as tf
 import tensorflow.python.platform
 
 # 多値分類ということで
-NUM_CLASSES = 245
+NUM_CLASSES = 328
 # 画像の縦/横画素数(S)
 IMAGE_SIZE = 28
 # SxSxNでNは枚数. 入力画像がグレースケールならN=1, カラーならRGB計3枚でN=3
@@ -25,11 +25,12 @@ IMAGE_PIXELS = IMAGE_SIZE*IMAGE_SIZE*3
 # flagsを使ってmodelで使用する定数をハンドリングする
 flags = tf.app.flags
 FLAGS = flags.FLAGS
-flags.DEFINE_string('train', 'train.txt', 'File name of train data')
-flags.DEFINE_string('test', 'test.txt', 'File name of test data')
+flags.DEFINE_string('train', 'DailyLogirlDateSet_1to328_28px/train.txt', 'File name of train data')
+flags.DEFINE_string('test', 'DailyLogirlDateSet_1to328_28px/test.txt', 'File name of test data')
 # tensorboardに出力するファイルの置き場
-flags.DEFINE_string('train_dir', '/tmp/data', 'Directory to put the training data.')
-flags.DEFINE_integer('max_steps', 100, 'Number of steps to run trainer.')
+flags.DEFINE_string('train_dir', './data/', 'Directory to put the training data.')
+flags.DEFINE_string('save_model', 'model_327_28px.ckpt', 'File name of model data.')
+flags.DEFINE_integer('max_steps', 200, 'Number of steps to run trainer.')
 flags.DEFINE_integer('batch_size', 10, 'Batch size.  '
                      'Must divide evenly into the dataset sizes.')
 # 学習率は0.01
@@ -71,7 +72,7 @@ def inference(images_placeholder, keep_prob):
     #   各層は一意のtf.name_scopeの下に作成される. 引数はscope内で作成されるアイテムへのプレフィクスとなる
     # 畳み込み層1の作成
     with tf.name_scope('conv1') as scope:
-        W_conv1 = weight_variable([5, 5, 3, 32])
+        W_conv1 = weight_variable([3, 3, 3, 32])
         b_conv1 = bias_variable([32])
         h_conv1 = tf.nn.relu(conv2d(x_image, W_conv1) + b_conv1)
 
@@ -81,7 +82,7 @@ def inference(images_placeholder, keep_prob):
     
     # 畳み込み層2の作成
     with tf.name_scope('conv2') as scope:
-        W_conv2 = weight_variable([5, 5, 32, 64])
+        W_conv2 = weight_variable([3, 3, 32, 64])
         b_conv2 = bias_variable([64])
         h_conv2 = tf.nn.relu(conv2d(h_pool1, W_conv2) + b_conv2)
 
@@ -91,17 +92,17 @@ def inference(images_placeholder, keep_prob):
 
     # 全結合層1の作成
     with tf.name_scope('fc1') as scope:
-        W_fc1 = weight_variable([7*7*64, 1024])
+        W_fc1 = weight_variable([7*7*64, 1024]) # 7*7*64次元の画像のベクトルを1024のベクトルにする
         b_fc1 = bias_variable([1024])
         h_pool2_flat = tf.reshape(h_pool2, [-1, 7*7*64])
-        h_fc1 = tf.nn.relu(tf.matmul(h_pool2_flat, W_fc1) + b_fc1)
+        h_fc1 = tf.nn.relu(tf.matmul(h_pool2_flat, W_fc1) + b_fc1) # matmul: 行列積Matrix Multiply
         # dropoutの設定
         h_fc1_drop = tf.nn.dropout(h_fc1, keep_prob)
 
     # 全結合層2の作成
     # TensorBoardでひとかたまりのノードとして表示される
     with tf.name_scope('fc2') as scope:
-        W_fc2 = weight_variable([1024, NUM_CLASSES])
+        W_fc2 = weight_variable([1024, NUM_CLASSES]) # 1024次元ベクトルを目的のクラス数分にする
         b_fc2 = bias_variable([NUM_CLASSES])
 
     # ソフトマックス関数による正規化
@@ -119,6 +120,7 @@ def inference(images_placeholder, keep_prob):
 #######################################################
 def loss(logits, labels):
     # 交差エントロピーの計算
+    # tf.reduce_sum: 全てのテンソルを加算
     cross_entropy = -tf.reduce_sum(labels*tf.log(logits))
     # TensorBoardで表示するよう指定
     tf.scalar_summary("cross_entropy", cross_entropy)
@@ -127,21 +129,32 @@ def loss(logits, labels):
 ######################### training ####################
 # 学習の実行
 # loss()で得た誤差を逆伝搬してネットワークを学習させる. 学習のop(node)を定義する
+#  https://www.tensorflow.org/versions/master/api_docs/python/train.html#optimizers
 # 引数: 損失のTensor(loss()の結果cross_entropy), 学習係数
 # 返り値: 学習のために定義したop
 #######################################################
 def training(loss, learning_rate):
-    # AdamOptimizerは全体のネットを最適化(自動微分のような)してくれる関数
+    # AdamOptimizerは全体のネットを最適化(自動微分のような)してくれる関数. 要は学習率l_rで最適化アルゴリズムを使うことで誤差を最小化する
     train_step = tf.train.AdamOptimizer(learning_rate).minimize(loss)
     return train_step
+#    # Create the gradient descent optimizer with the given learning rate.
+#    optimizer = tf.train.GradientDescentOptimizer(learning_rate)
+#    # Create a variable to track the global step.
+#    global_step = tf.Variable(0, name='global_step', trainable=False)
+#    # Use the optimizer to apply the gradients that minimize the loss
+#    # (and also increment the global step counter) as a single training step.
+#    train_op = optimizer.minimize(loss, global_step=global_step)
+#    return train_op
 
-############################ 正解率の計算 ######################
+############################ 正解率の計算(モデルの評価) ######################
 # 正解率(accuracy)を計算する関数
 # 引数: inference()の結果y_conv, ラベルのTensor(int32 - [batch_size, NUM_CLASSES])
 # 返り値: 正解率(float)
 ################################################################
 def accuracy(logits, labels):
+    # モデルのクラスラベルと正解のクラスラベルが等しければ正解(予測は正しい)
     correct_prediction = tf.equal(tf.argmax(logits, 1), tf.argmax(labels, 1))
+    # booleanリストを浮動小数点型にキャスト(True->1.0, False->0.0)し, その平均値をとる
     accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
     # 正解率をsummaryし, tf.train.SummaryWriterでそれを書き出す
     tf.scalar_summary("accuracy", accuracy)
@@ -196,7 +209,7 @@ if __name__ == '__main__':
     with tf.Graph().as_default():
         # 画像を入れる仮のTensor
         images_placeholder = tf.placeholder("float", shape=(None, IMAGE_PIXELS))
-        # ラベルを入れる仮のTensor
+        # クラスラベルを入れる仮のTensor
         labels_placeholder = tf.placeholder("float", shape=(None, NUM_CLASSES))
         # dropout率を入れる仮のTensor
         keep_prob = tf.placeholder("float")
@@ -252,4 +265,4 @@ if __name__ == '__main__':
         keep_prob: 1.0})
 
     # 最終的なモデルを保存
-    save_path = saver.save(sess, "model.ckpt")
+    save_path = saver.save(sess, FLAGS.save_model)
