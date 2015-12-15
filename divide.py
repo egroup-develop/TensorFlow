@@ -94,12 +94,21 @@ if __name__ == '__main__':
     #saver.restore(sess, FLAGS.use_model)
     saver.restore(sess, "model_245_1470_490_8per.ckpt")
 
-    ##### ランクづけ #####
+
+    ##### ランクづけここから #####
     for i in range(len(test_image)):
         pred = np.argmax(logits.eval(feed_dict={ 
             images_placeholder: [test_image[i]],
             keep_prob: 1.0 })[0])
-        print str(name[i + 1]) + "は" + str(pred) + " = " + str(getName(pred)) + " さんに最も近いです"
+
+        print str(name[i + 1]) + "は" 
+        path = str(name[i + 1])
+        #image = Image.open(path)
+        #image.show()
+
+        print str(pred) + " = " + str(getName(pred)) + " さんに最も近いです"
+        #image = Image.open("LogirlImages/" + str(pred) + "/" + "image_" + str(1) + "_origin.jpeg")
+        #image.show()
 
         # 特徴の近さ確率をノード数分
         feature = logits.eval(feed_dict={
@@ -115,7 +124,7 @@ if __name__ == '__main__':
         pred5 = featureSorted[4]
         pred6 = featureSorted[5]
 
-        print "つまり" + str(getName(pred)) + "さんは, "
+        print "そして" + str(getName(pred)) + "さんは, "
 
         rank = {}
         for index, value in enumerate(feature):
@@ -136,7 +145,7 @@ if __name__ == '__main__':
             print "6番目に" + str(index) + " = " + str(getName(index)) + " さんに近いです"
         print "\n"
 
-        ##### 入力した画像の分類結果(クラス)から名前と画像を取得 #####
+        ##### 入力した画像の分類結果(クラス)から名前と画像を取得ここから #####
         rank =  sorted(rank.items(), key=lambda x:x[0])
         for i in range(len(rank)):
           print rank[i][1]
@@ -146,5 +155,6 @@ if __name__ == '__main__':
             imagePath = "LogirlImages/" + getIndex(rank[i][1]) + "/" + "image_" + str(j+1) + "_origin.jpeg"
             print imagePath
             ##### 取得した画像を表示 #####
+            #if j == 0:
             image = Image.open(imagePath)
             image.show()
