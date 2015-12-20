@@ -8,6 +8,7 @@ import cv2
 from getName import getName
 from getName import getIndex
 from PIL import Image
+import json
 
 
 NUM_CLASSES = 245
@@ -17,6 +18,12 @@ IMAGE_PIXELS = IMAGE_SIZE*IMAGE_SIZE*3
 flags = tf.app.flags
 FLAGS = flags.FLAGS
 #flags.DEFINE_string('use_model', 'model_245_1470_490_8per.ckpt', 'File name of model data.')
+
+# {"クラスインデックス":"コスト", ...}
+# 1位->5, 2位->4, ...5位->1 のコストとする 
+rankList = {}
+# {クラスインデックス: {rankuList}, ...}
+neighborList = {}
 
 ####################モデルを作成する関数#####################
 # 引数: 画像のplaceholder, dropout率のplace_holder
@@ -38,7 +45,7 @@ def inference(images_placeholder, keep_prob):
       return tf.nn.max_pool(x, ksize=[1, 2, 2, 1],
                             strides=[1, 2, 2, 1], padding='SAME')
     
-    x_image = tf.reshape(images_placeholder, [-1, 28, 28, 3])
+    x_image = tf.reshape(images_placeholder, [-1, IMAGE_SIZE, IMAGE_SIZE, 3])
 
     with tf.name_scope('conv1') as scope:
         W_conv1 = weight_variable([5, 5, 3, 32])
@@ -74,12 +81,33 @@ def inference(images_placeholder, keep_prob):
 
 if __name__ == '__main__':
     test_image = []
-    name = sys.argv
-    for i in range(1, len(sys.argv)):
-        img = cv2.imread(sys.argv[i])
-        img = cv2.resize(img, (28, 28))
+    name = []
+
+    # 分類したい画像のデータセットを渡す
+    with open ("train.txt", "r") as f:
+      test_image_tmp = []
+
+      for line in f:
+        line = line.rstrip()
+        text = ""
+
+        for i in range(len(line)):
+          if line[i] != " ":
+            text += line[i]
+          else:
+            break
+
+        line = text
+        test_image_tmp.append(line);
+            
+      name = test_image_tmp
+
+      for i in range(0, len(test_image_tmp)):
+        img = cv2.imread(test_image_tmp[i])
+        img = cv2.resize(img, (IMAGE_SIZE, IMAGE_SIZE))
         test_image.append(img.flatten().astype(np.float32)/255.0)
-    test_image = np.asarray(test_image)
+
+      test_image = np.asarray(test_image)
 
     images_placeholder = tf.placeholder("float", shape=(None, IMAGE_PIXELS))
     labels_placeholder = tf.placeholder("float", shape=(None, NUM_CLASSES))
@@ -96,13 +124,14 @@ if __name__ == '__main__':
 
 
     ##### ランクづけここから #####
+    divideCounter = 0
     for i in range(len(test_image)):
         pred = np.argmax(logits.eval(feed_dict={ 
             images_placeholder: [test_image[i]],
             keep_prob: 1.0 })[0])
 
-        print str(name[i + 1]) + "は" 
-        path = str(name[i + 1])
+        print str(name[i]) + "は" 
+        path = str(name[i])
         #image = Image.open(path)
         #image.show()
 
@@ -148,13 +177,41 @@ if __name__ == '__main__':
         ##### 入力した画像の分類結果(クラス)から名前と画像を取得ここから #####
         rank =  sorted(rank.items(), key=lambda x:x[0])
         for i in range(len(rank)):
+          # rankはタプルで, ("順位", "名前")
           print rank[i][1]
           print getIndex(rank[i][1])
 
+          # クラスインデックスにコストを付与&加算
+          if rankList.get(getIndex(rank[i][1])) is not None:
+            rankList[getIndex(rank[i][1])] = str(int(rankList[getIndex(rank[i][1])]) + (5 - i))
+          else:
+            rankList[getIndex(rank[i][1])] = str(5 - i)
+
+          # クラスインデックスの画像を表示
           for j in range(4):
             imagePath = "LogirlImages/" + getIndex(rank[i][1]) + "/" + "image_" + str(j+1) + "_origin.jpeg"
             print imagePath
             ##### 取得した画像を表示 #####
             #if j == 0:
-            image = Image.open(imagePath)
-            image.show()
+            #image = Image.open(imagePath)
+            #image.show()
+
+        # ランク保持リストの表示
+        #print rankList
+       
+        # 更新 
+        neighborList[str(pred)] = rankList
+
+        divideCounter += 1
+
+        # クラスの区切りでランクリストを一度クリアする. 判定の数は, 1クラスあたりの画像枚数を指定する
+        if divideCounter == 6:
+          divideCounter = 0
+          rankList = {}
+
+        # 与えられた画像の近しい人リストを表示
+        print neighborList
+   
+    # 各人の分類ランキングをjsonファイルとして保存 
+    with open("save_person_features.json", "w") as f:
+      json.dump(neighborList, f, sort_keys = True, indent = 4)
