@@ -14,6 +14,7 @@ import cv2
 import numpy as np
 import tensorflow as tf
 import tensorflow.python.platform
+import datetime
 
 # 多値分類ということで
 NUM_CLASSES = 328
@@ -21,6 +22,7 @@ NUM_CLASSES = 328
 IMAGE_SIZE = 28
 # SxSxNでNは枚数. 入力画像がグレースケールならN=1, カラーならRGB計3枚でN=3
 IMAGE_PIXELS = IMAGE_SIZE*IMAGE_SIZE*3
+dateTime = datetime.datetime.today()
 
 # flagsを使ってmodelで使用する定数をハンドリングする
 flags = tf.app.flags
@@ -29,9 +31,9 @@ flags.DEFINE_string('train', 'DailyLogirlDateSet_1to328_28px/train.txt', 'File n
 flags.DEFINE_string('test', 'DailyLogirlDateSet_1to328_28px/test.txt', 'File name of test data')
 # tensorboardに出力するファイルの置き場
 flags.DEFINE_string('train_dir', './data/', 'Directory to put the training data.')
-flags.DEFINE_string('save_model', 'model_327_28px.ckpt', 'File name of model data.')
+flags.DEFINE_string('save_model', './model/model_327_28px_' + str(dateTime.month) + str(dateTime.day) + str(dateTime.hour) + str(dateTime.minute) + '.ckpt', 'File name of model data.')
 flags.DEFINE_integer('max_steps', 200, 'Number of steps to run trainer.')
-flags.DEFINE_integer('batch_size', 10, 'Batch size.  '
+flags.DEFINE_integer('batch_size', 100, 'Batch size.  '
                      'Must divide evenly into the dataset sizes.')
 # 学習率は0.01
 flags.DEFINE_float('learning_rate', 1e-4, 'Initial learning rate.')
@@ -66,13 +68,13 @@ def inference(images_placeholder, keep_prob):
                             strides=[1, 2, 2, 1], padding='SAME')
     
     # 入力(テンソル)を28x28x3に変形
-    x_image = tf.reshape(images_placeholder, [-1, 28, 28, 3])
+    x_image = tf.reshape(images_placeholder, [-1, IMAGE_SIZE, IMAGE_SIZE, 3])
 
     # with tf.name_scope('hidden1') as scope:
     #   各層は一意のtf.name_scopeの下に作成される. 引数はscope内で作成されるアイテムへのプレフィクスとなる
     # 畳み込み層1の作成
     with tf.name_scope('conv1') as scope:
-        W_conv1 = weight_variable([3, 3, 3, 32])
+        W_conv1 = weight_variable([5, 5, 3, 32])
         b_conv1 = bias_variable([32])
         h_conv1 = tf.nn.relu(conv2d(x_image, W_conv1) + b_conv1)
 
@@ -82,7 +84,7 @@ def inference(images_placeholder, keep_prob):
     
     # 畳み込み層2の作成
     with tf.name_scope('conv2') as scope:
-        W_conv2 = weight_variable([3, 3, 32, 64])
+        W_conv2 = weight_variable([5, 5, 32, 64])
         b_conv2 = bias_variable([64])
         h_conv2 = tf.nn.relu(conv2d(h_pool1, W_conv2) + b_conv2)
 
@@ -110,7 +112,12 @@ def inference(images_placeholder, keep_prob):
         y_conv=tf.nn.softmax(tf.matmul(h_fc1_drop, W_fc2) + b_fc2)
 
     # 各ラベルの確率のようなものを返す
-    return y_conv
+#    return y_conv
+    # ReluGlad is not finite(非数エラー) 対策 ->
+    #   tf.clip_by_value(t, clip_value_min, clip_value_max, name=None): 
+    #     Any values less than clip_value_min are set to clip_value_min. Any values greater than clip_value_max are set to clip_value_max
+    #     https://www.tensorflow.org/versions/master/api_docs/python/train.html#clip_by_value
+    return tf.clip_by_value(y_conv, 1e-10, 1.0)
 
 ####################### loss ##########################
 # loss関数
@@ -122,6 +129,7 @@ def loss(logits, labels):
     # 交差エントロピーの計算
     # tf.reduce_sum: 全てのテンソルを加算
     cross_entropy = -tf.reduce_sum(labels*tf.log(logits))
+
     # TensorBoardで表示するよう指定
     tf.scalar_summary("cross_entropy", cross_entropy)
     return cross_entropy
@@ -167,43 +175,43 @@ def accuracy(logits, labels):
 ################################################################
 if __name__ == '__main__':
     # ファイルを開く
-    f = open(FLAGS.train, 'r')
-    # データを入れる配列
-    train_image = []
-    train_label = []
-    for line in f:
-        # 文字列の末尾(改行)を除いてスペース区切りにする
-        line = line.rstrip()
-        l = line.split()
-        # データを読み込んで28x28に縮小
-        img = cv2.imread(l[0])
-        img = cv2.resize(img, (28, 28))
-        # 一列にした後、0-1のfloat値にする
-        train_image.append(img.flatten().astype(np.float32)/255.0)
-        # ラベルを1-of-n方式で用意する
-        tmp = np.zeros(NUM_CLASSES)
-        tmp[int(l[1])] = 1
-        train_label.append(tmp)
-    # numpy形式に変換
-    train_image = np.asarray(train_image)
-    train_label = np.asarray(train_label)
-    f.close()
+    with open(FLAGS.train, 'r') as f:
+        # データを入れる配列
+        train_image = []
+        train_label = []
+        for line in f:
+            # 文字列の末尾(改行)を除いてスペース区切りにする
+            line = line.rstrip()
+            l = line.split()
+            # データを読み込んで28x28に縮小
+            img = cv2.imread(l[0])
+            img = cv2.resize(img, (IMAGE_SIZE, IMAGE_SIZE))
+            # 一列にした後、0-1のfloat値にする
+            train_image.append(img.flatten().astype(np.float32)/255.0)
+            # ラベルを1-of-n方式で用意する
+            tmp = np.zeros(NUM_CLASSES)
+            tmp[int(l[1])] = 1
+            train_label.append(tmp)
+        # numpy形式に変換
+        train_image = np.asarray(train_image)
+        train_label = np.asarray(train_label)
+#        train_len = len(train_image)
 
-    f = open(FLAGS.test, 'r')
-    test_image = []
-    test_label = []
-    for line in f:
-        line = line.rstrip()
-        l = line.split()
-        img = cv2.imread(l[0])
-        img = cv2.resize(img, (28, 28))
-        test_image.append(img.flatten().astype(np.float32)/255.0)
-        tmp = np.zeros(NUM_CLASSES)
-        tmp[int(l[1])] = 1
-        test_label.append(tmp)
-    test_image = np.asarray(test_image)
-    test_label = np.asarray(test_label)
-    f.close()
+    with open(FLAGS.test, 'r') as f:
+        test_image = []
+        test_label = []
+        for line in f:
+            line = line.rstrip()
+            l = line.split()
+            img = cv2.imread(l[0])
+            img = cv2.resize(img, (IMAGE_SIZE, IMAGE_SIZE))
+            test_image.append(img.flatten().astype(np.float32)/255.0)
+            tmp = np.zeros(NUM_CLASSES)
+            tmp[int(l[1])] = 1
+            test_label.append(tmp)
+        test_image = np.asarray(test_image)
+        test_label = np.asarray(test_label)
+#        test_len = len(test_image)
     
     # VariableをGraphに追加するにはwith tf.Graph().as_default():スコープ内で宣言もしくは呼び出す必要がある
     with tf.Graph().as_default():
@@ -234,16 +242,42 @@ if __name__ == '__main__':
         summary_writer = tf.train.SummaryWriter(FLAGS.train_dir, sess.graph_def)
         
         # 訓練の実行
+#        if train_len % FLAGS.batch_size is 0:
+#            train_batch = train_len/FLAGS.batch_size
+#        else:
+#            train_batch = (train_len/FLAGS.batch_size)+1
         for step in range(FLAGS.max_steps):
+#            for i in range(train_batch):
             for i in range(len(train_image)/FLAGS.batch_size):
                 # batch_size分の画像に対して訓練の実行
                 batch = FLAGS.batch_size*i
+#                batch_plus = FLAGS.batch_size*(i+1)
+#                if batch_plus > train_len: batch_plus = train_len
                 # feed_dictでplaceholderに入れるデータを指定する
                 sess.run(train_op, feed_dict={
                   images_placeholder: train_image[batch:batch+FLAGS.batch_size],
                   labels_placeholder: train_label[batch:batch+FLAGS.batch_size],
                   keep_prob: 0.5})
 
+#            if step % 10 == 0:
+#                # 10 step終わるたびに精度を計算する
+#                train_accuracy = 0.0
+#                for i in range(train_batch):
+#                    batch = FLAGS.batch_size*i
+#                    batch_plus = FLAGS.batch_size*(i+1)
+#                    if batch_plus > train_len: batch_plus = train_len
+#                    train_accuracy += sess.run(acc, feed_dict={
+#                        images_placeholder: train_image[batch:batch_plus],
+#                        labels_placeholder: train_label[batch:batch_plus],
+#                        keep_prob: 1.0})
+#                    if i is not 0: train_accuracy /= 2.0
+#                # 10 step終わるたびにTensorBoardに表示する値を追加する
+#                #summary_str = sess.run(summary_op, feed_dict={
+#                #    images_placeholder: train_image,
+#                #    labels_placeholder: train_label,
+#                #    keep_prob: 1.0})
+#                #summary_writer.add_summary(summary_str, step)
+#                print "step %d, training accuracy %g"%(step, train_accuracy)
             # 1 step終わるたびに精度を計算する. 対訓練データ
             train_accuracy = sess.run(acc, feed_dict={
                 images_placeholder: train_image,
@@ -258,6 +292,24 @@ if __name__ == '__main__':
                 keep_prob: 1.0})
             summary_writer.add_summary(summary_str, step)
 
+#    # 訓練が終了したらテストデータに対する精度を表示
+#    print "train finish!!\n\n\ntest start."
+#    if test_len % FLAGS.batch_size is 0:
+#        test_batch = test_len/FLAGS.batch_size
+#    else:
+#        test_batch = (test_len/FLAGS.batch_size)+1
+#        print "test_batch = "+str(test_batch)
+#    test_accuracy = 0.0
+#    for i in range(test_batch):
+#        batch = FLAGS.batch_size*i
+#        batch_plus = FLAGS.batch_size*(i+1)
+#        if batch_plus > train_len: batch_plus = train_len
+#        test_accuracy += sess.run(acc, feed_dict={
+#                images_placeholder: test_image[batch:batch_plus],
+#                labels_placeholder: test_label[batch:batch_plus],
+#                keep_prob: 1.0})
+#        if i is not 0: test_accuracy /= 2.0
+#    print "test accuracy %g"%(test_accuracy)
     # 訓練が終了したらテストデータに対する精度を表示. 対評価データ
     print "test accuracy %g"%sess.run(acc, feed_dict={
         images_placeholder: test_image,
