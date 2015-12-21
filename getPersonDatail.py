@@ -11,13 +11,17 @@ urlList = []
 
 try:
   r = urllib2.urlopen(u)
-  name = ""
-  nameList = []
-  nameStart = 0
-  nameEnd = 0
-  index = ""
+#  name = ""
+#  nameStart = 0
+#  nameEnd = 0
+#  index = ""
 
   for ary in json.loads(r.read()):
+    name = ""
+    nameStart = 0
+    nameEnd = 0
+    index = ""
+
     id = ary['Id']
     titles = ary['Title']
     urls = ary['Url']
@@ -53,19 +57,19 @@ try:
     for i in range(nameStart, nameEnd):
       name += titles[i]
  
-    nameList.append(name)
-    print "ID: " + id
-    print u"名前: " + nameList[len(nameList)-1]
-    personList["Name"] = nameList[len(nameList)-1]
+    print u"名前: " + name
 
     index = titles[len(titles) - 3:]
     if index[0] == u"0":
       if index[1] == u"0":
-        index = index[2]    
+        index = index[2]
       else:
         index = index[1] + index[2]
 
+    personList["Name"] = name
+
     print "index: " + index
+    print "ID: " + id
 
     k = 1
     for url in urls:
@@ -74,6 +78,10 @@ try:
         urlList.append(url)
 
       k += 1
+
+    i += 1
+    name = ""
+    nameStart = 0
 
     personList["Url"] = urlList
     jsonList[str(int(index) - 1)] = personList
