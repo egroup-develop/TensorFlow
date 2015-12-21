@@ -3,24 +3,21 @@ import urllib
 import urllib2
 import json
 
-u = 'start=4&limit=400&category=Daily%2BLoGiRL'
-title = "personDataList.json"
+u = 'http://study-golang.appspot.com/outjson?myname=hiroki&portalname=logirl&start=6&limit=400&category=Daily%2BLoGiRL'
+title = "save_person_details.json"
 personList = {}
 jsonList = {}
 urlList = []
 
 try:
   r = urllib2.urlopen(u)
-#  name = ""
-#  nameStart = 0
-#  nameEnd = 0
-#  index = ""
 
   for ary in json.loads(r.read()):
     name = ""
     nameStart = 0
     nameEnd = 0
     index = ""
+    articleDetailUrl = 'https://logirl.favclip.com/article/detail/'
 
     id = ary['Id']
     titles = ary['Title']
@@ -71,6 +68,10 @@ try:
     print "index: " + index
     print "ID: " + id
 
+    articleDetailUrl += id
+    print u"記事URL : " + articleDetailUrl
+    personList["articleDetailUrl"] = articleDetailUrl
+
     k = 1
     for url in urls:
       if k < 5:
@@ -83,7 +84,7 @@ try:
     name = ""
     nameStart = 0
 
-    personList["Url"] = urlList
+    personList["ImageUrl"] = urlList
     jsonList[str(int(index) - 1)] = personList
 
     personList = {}
