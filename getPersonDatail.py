@@ -3,7 +3,7 @@ import urllib
 import urllib2
 import json
 
-u = 'http://study-golang.appspot.com/outjson?myname=hiroki&portalname=logirl&start=6&limit=400&category=Daily%2BLoGiRL'
+u = ''
 title = "save_person_details.json"
 personList = {}
 jsonList = {}
