@@ -706,6 +706,21 @@ step 197, training accuracy 0.997967
 step 198, training accuracy 0.997967
 step 199, training accuracy 0.997967
 test accuracy 0.120843
-
-    - 備考: PCから多量の汗が噴射される
-     
+    - バッチ処理の工夫を施した場合
+      - 所用時間: 3時間くらい
+        - step 50, training accuracy 0.910745
+step 60, training accuracy 0.989354
+step 70, training accuracy 0.995
+step 80, training accuracy 1
+step 90, training accuracy 1
+step 100, training accuracy 1
+step 110, training accuracy 1
+step 120, training accuracy 1
+step 130, training accuracy 1
+step 140, training accuracy 1
+step 150, training accuracy 1
+step 160, training accuracy 1
+step 170, training accuracy 1
+step 180, training accuracy 1
+step 190, training accuracy 1
+test accuracy 0.0288094
