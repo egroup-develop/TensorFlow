@@ -183,9 +183,11 @@ if __name__ == '__main__':
 
           # クラスインデックスにコストを付与&加算
           if rankList.get(getIndex(rank[i][1])) is not None:
-            rankList[getIndex(rank[i][1])] = str(int(rankList[getIndex(rank[i][1])]) + (5 - i))
+            #rankList[getIndex(rank[i][1])] = str(int(rankList[getIndex(rank[i][1])]) + (5 - i))
+            rankList[getIndex(rank[i][1])] = int(rankList[getIndex(rank[i][1])]) + (5 - i)
           else:
-            rankList[getIndex(rank[i][1])] = str(5 - i)
+            #rankList[getIndex(rank[i][1])] = str(5 - i)
+            rankList[getIndex(rank[i][1])] = int(5 - i)
 
           # クラスインデックスの画像を表示
           for j in range(4):
@@ -199,13 +201,18 @@ if __name__ == '__main__':
         # ランク保持リストの表示
         #print rankList
        
-        # 更新 
-        neighborList[str(pred)] = rankList
-
         divideCounter += 1
 
         # クラスの区切りでランクリストを一度クリアする. 判定の数は, 1クラスあたりの画像枚数を指定する
         if divideCounter == 6:
+          # ランク保持リストのソート
+          # ソート前rankListは{"0":"1", "1":"2", ...} の辞書
+          # ソート後rankListは[("0","1"), ("1","2"), ...] のタプル
+          rankList = sorted(rankList.items(), key=lambda x:x[1], reverse=True)
+
+          # 更新
+          neighborList[str(pred)] = rankList
+
           divideCounter = 0
           rankList = {}
 
