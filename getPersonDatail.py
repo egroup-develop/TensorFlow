@@ -70,7 +70,7 @@ try:
 
     articleDetailUrl += id
     print u"記事URL : " + articleDetailUrl
-    personList["articleDetailUrl"] = articleDetailUrl
+    personList["ArticleDetailUrl"] = articleDetailUrl
 
     k = 1
     for url in urls:
