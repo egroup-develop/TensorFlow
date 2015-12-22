@@ -9,16 +9,19 @@ from getName import getName
 from getName import getIndex
 from PIL import Image
 import json
+import datetime
 
 
-NUM_CLASSES = 245
+NUM_CLASSES = 328
 IMAGE_SIZE = 28
 IMAGE_PIXELS = IMAGE_SIZE*IMAGE_SIZE*3
+dateTime = datetime.datetime.today()
 
 flags = tf.app.flags
 FLAGS = flags.FLAGS
-#flags.DEFINE_string('use_model', 'model_245_1470_490_8per.ckpt', 'File name of model data.')
+#flags.DEFINE_string('use_model', './model/model_327_28px_201512221418.ckpt', 'File name of model data.')
 
+fileName = "save_person_features_" + str(dateTime.year) + str(dateTime.month) + str(dateTime.day) + str(dateTime.hour) + str(dateTime.minute) + ".json"
 # {"クラスインデックス":"コスト", ...}
 # 1位->5, 2位->4, ...5位->1 のコストとする 
 rankList = {}
@@ -84,7 +87,7 @@ if __name__ == '__main__':
     name = []
 
     # 分類したい画像のデータセットを渡す
-    with open ("train.txt", "r") as f:
+    with open ("DailyLogirlDateSet_1to328_28px/train.txt", "r") as f:
       test_image_tmp = []
 
       for line in f:
@@ -120,7 +123,7 @@ if __name__ == '__main__':
     sess.run(tf.initialize_all_variables())
     #分類器として使うmodelを指定する
     #saver.restore(sess, FLAGS.use_model)
-    saver.restore(sess, "model_245_1470_490_8per.ckpt")
+    saver.restore(sess, "./model/model_327_28px_201512221418.ckpt")
 
 
     ##### ランクづけここから #####
@@ -192,7 +195,7 @@ if __name__ == '__main__':
           # クラスインデックスの画像を表示
           for j in range(4):
             imagePath = "LogirlImages/" + getIndex(rank[i][1]) + "/" + "image_" + str(j+1) + "_origin.jpeg"
-            print imagePath
+            #print imagePath
             ##### 取得した画像を表示 #####
             #if j == 0:
             #image = Image.open(imagePath)
@@ -204,7 +207,7 @@ if __name__ == '__main__':
         divideCounter += 1
 
         # クラスの区切りでランクリストを一度クリアする. 判定の数は, 1クラスあたりの画像枚数を指定する
-        if divideCounter == 6:
+        if divideCounter == 33:
           # ランク保持リストのソート
           # ソート前rankListは{"0":"1", "1":"2", ...} の辞書
           # ソート後rankListは[("0","1"), ("1","2"), ...] のタプル
@@ -220,5 +223,5 @@ if __name__ == '__main__':
         print neighborList
    
     # 各人の分類ランキングをjsonファイルとして保存 
-    with open("save_person_features.json", "w") as f:
+    with open(fileName, "w") as f:
       json.dump(neighborList, f, sort_keys = True, indent = 4)
