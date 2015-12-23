@@ -3,10 +3,10 @@ import urllib
 import urllib2
 import json
 
-u = ''
-title = "save_person_details.json"
+u = 'http://study-golang.appspot.com/outjson?myname=hiroki&portalname=logirl&start=6&limit=400&category=Daily%2BLoGiRL'
+title = "logirl_details_id_1to328.json"
 personList = {}
-jsonList = {}
+jsonList = []
 urlList = []
 
 try:
@@ -85,7 +85,10 @@ try:
     nameStart = 0
 
     personList["ImageUrl"] = urlList
-    jsonList[str(int(index) - 1)] = personList
+
+    personList["Index"] = str(int(index) - 1)
+
+    jsonList.append(personList)
 
     personList = {}
     urlList = []
