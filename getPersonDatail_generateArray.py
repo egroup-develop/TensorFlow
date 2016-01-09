@@ -4,7 +4,7 @@ import urllib2
 import json
 
 u = 'https://study-golang.appspot.com/outjson?myname=hiroki&portalname=logirl&start=27&limit=400&category=Daily%2BLoGiRL'
-title = "logirl_details_id_1to328.json"
+title = "logirl_details_id_1to328_array.json"
 personList = {}
 jsonList = []
 urlList = []
