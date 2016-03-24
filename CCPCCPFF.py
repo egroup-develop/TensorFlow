@@ -249,6 +249,7 @@ if __name__ == '__main__':
 
         # 保存の準備. Create a saver for writing training checkpoints
         saver = tf.train.Saver()
+
         # Sessionの作成. Create a session for running Ops on the Graph
         sess = tf.Session()
         # 変数の初期化
@@ -327,14 +328,13 @@ if __name__ == '__main__':
 #        if i is not 0: test_accuracy /= 2.0
 #    print "test accuracy %g"%(test_accuracy)
     # 訓練が終了したらテストデータに対する精度を表示. 対評価データ
+    elapsed_time = time.time() - start
+    print("elapsed_time:{0}".format(elapsed_time)) + "sec"
+
     print "test accuracy %g"%sess.run(acc, feed_dict={
         images_placeholder: test_image,
         labels_placeholder: test_label,
         keep_prob: 1.0})
-
-    # 実行時間を表示
-    elapsed_time = time.time() - start
-    print ("elapsed_time:{0}".format(elapsed_time)) + "[sec]"
 
     # 最終的なモデルを保存
     save_path = saver.save(sess, FLAGS.save_model)
