@@ -67,7 +67,7 @@ def inference(images_placeholder, keep_prob):
     def max_pool_2x2(x):
       return tf.nn.max_pool(x, ksize=[1, 2, 2, 1],
                             strides=[1, 2, 2, 1], padding='SAME')
-    
+
     # 入力(テンソル)を28x28x3に変形
     x_image = tf.reshape(images_placeholder, [-1, IMAGE_SIZE, IMAGE_SIZE, 3])
 
@@ -88,22 +88,20 @@ def inference(images_placeholder, keep_prob):
     # プーリング層1の作成
     with tf.name_scope('pool1') as scope:
         h_pool1 = max_pool_2x2(h_conv1_2)
-    
+
+    # 正規化層の作成
+    with tf.name_scope('lrn') as scope:
+        norm1 = tf.nn.local_response_normalization(h_pool1)
+
     # 畳み込み層2の作成
     with tf.name_scope('conv2') as scope:
         W_conv2 = weight_variable([5, 5, 32, 64])
         b_conv2 = bias_variable([64])
-        h_conv2 = tf.nn.relu(conv2d(h_pool1, W_conv2) + b_conv2)
-
-    # 畳み込み層2_2の作成
-    with tf.name_scope('conv2_2') as scope:
-        W_conv2_2 = weight_variable([5, 5, 64, 64])
-        b_conv2_2 = bias_variable([64])
-        h_conv2_2 = tf.nn.relu(conv2d(h_conv2, W_conv2_2) + b_conv2_2)
+        h_conv2 = tf.nn.relu(conv2d(norm1, W_conv2) + b_conv2)
 
     # プーリング層2の作成
     with tf.name_scope('pool2') as scope:
-        h_pool2 = max_pool_2x2(h_conv2_2)
+        h_pool2 = max_pool_2x2(h_conv2)
 
     # 全結合層1の作成
     with tf.name_scope('fc1') as scope:
@@ -211,7 +209,7 @@ if __name__ == '__main__':
         # numpy形式に変換
         train_image = np.asarray(train_image)
         train_label = np.asarray(train_label)
-#        train_len = len(train_image)
+        train_len = len(train_image)
 
     with open(FLAGS.test, 'r') as f:
         test_image = []
@@ -227,8 +225,8 @@ if __name__ == '__main__':
             test_label.append(tmp)
         test_image = np.asarray(test_image)
         test_label = np.asarray(test_label)
-#        test_len = len(test_image)
-    
+        test_len = len(test_image)
+
     # VariableをGraphに追加するにはwith tf.Graph().as_default():スコープ内で宣言もしくは呼び出す必要がある
     with tf.Graph().as_default():
         # 画像を入れる仮のTensor
@@ -249,7 +247,6 @@ if __name__ == '__main__':
 
         # 保存の準備. Create a saver for writing training checkpoints
         saver = tf.train.Saver()
-
         # Sessionの作成. Create a session for running Ops on the Graph
         sess = tf.Session()
         # 変数の初期化
@@ -257,84 +254,72 @@ if __name__ == '__main__':
         # TensorBoardで表示する値の設定
         summary_op = tf.merge_all_summaries()
         summary_writer = tf.train.SummaryWriter(FLAGS.train_dir, sess.graph_def)
-        
+
         # 訓練の実行
-#        if train_len % FLAGS.batch_size is 0:
-#            train_batch = train_len/FLAGS.batch_size
-#        else:
-#            train_batch = (train_len/FLAGS.batch_size)+1
+        if train_len % FLAGS.batch_size is 0:
+            train_batch = train_len/FLAGS.batch_size
+        else:
+            train_batch = (train_len/FLAGS.batch_size)+1
         for step in range(FLAGS.max_steps):
-#            for i in range(train_batch):
-            for i in range(len(train_image)/FLAGS.batch_size):
+            for i in range(train_batch):
                 # batch_size分の画像に対して訓練の実行
                 batch = FLAGS.batch_size*i
-#                batch_plus = FLAGS.batch_size*(i+1)
-#                if batch_plus > train_len: batch_plus = train_len
+                batch_plus = FLAGS.batch_size*(i+1)
+                if batch_plus > train_len: batch_plus = train_len
                 # feed_dictでplaceholderに入れるデータを指定する
                 sess.run(train_op, feed_dict={
                   images_placeholder: train_image[batch:batch+FLAGS.batch_size],
                   labels_placeholder: train_label[batch:batch+FLAGS.batch_size],
                   keep_prob: 0.5})
 
-#            if step % 10 == 0:
-#                # 10 step終わるたびに精度を計算する
-#                train_accuracy = 0.0
-#                for i in range(train_batch):
-#                    batch = FLAGS.batch_size*i
-#                    batch_plus = FLAGS.batch_size*(i+1)
-#                    if batch_plus > train_len: batch_plus = train_len
-#                    train_accuracy += sess.run(acc, feed_dict={
-#                        images_placeholder: train_image[batch:batch_plus],
-#                        labels_placeholder: train_label[batch:batch_plus],
-#                        keep_prob: 1.0})
-#                    if i is not 0: train_accuracy /= 2.0
-#                # 10 step終わるたびにTensorBoardに表示する値を追加する
-#                #summary_str = sess.run(summary_op, feed_dict={
-#                #    images_placeholder: train_image,
-#                #    labels_placeholder: train_label,
-#                #    keep_prob: 1.0})
-#                #summary_writer.add_summary(summary_str, step)
-#                print "step %d, training accuracy %g"%(step, train_accuracy)
-            # 1 step終わるたびに精度を計算する. 対訓練データ
-            train_accuracy = sess.run(acc, feed_dict={
-                images_placeholder: train_image,
-                labels_placeholder: train_label,
-                keep_prob: 1.0})
-            print "step %d, training accuracy %g"%(step, train_accuracy)
+            if step % 10 == 0:
+                # 10 step終わるたびに精度を計算する
+                train_accuracy = 0.0
+                for i in range(train_batch):
+                    batch = FLAGS.batch_size*i
+                    batch_plus = FLAGS.batch_size*(i+1)
+                    if batch_plus > train_len: batch_plus = train_len
+                    train_accuracy += sess.run(acc, feed_dict={
+                        images_placeholder: train_image[batch:batch_plus],
+                        labels_placeholder: train_label[batch:batch_plus],
+                        keep_prob: 1.0})
+                    if i is not 0: train_accuracy /= 2.0
+                # 10 step終わるたびにTensorBoardに表示する値を追加する
+                #summary_str = sess.run(summary_op, feed_dict={
+                #    images_placeholder: train_image,
+                #    labels_placeholder: train_label,
+                #    keep_prob: 1.0})
+                #summary_writer.add_summary(summary_str, step)
+                print "step %d, training accuracy %g"%(step, train_accuracy)
 
-            # 1 step終わるたびにTensorBoardに表示する値を追加する
-            summary_str = sess.run(summary_op, feed_dict={
-                images_placeholder: train_image,
-                labels_placeholder: train_label,
+    # 訓練が終了したらテストデータに対する精度を表示
+    print "train finish!!\n\n\ntest start."
+    if test_len % FLAGS.batch_size is 0:
+        test_batch = test_len/FLAGS.batch_size
+    else:
+        test_batch = (test_len/FLAGS.batch_size)+1
+        print "test_batch = "+str(test_batch)
+    test_accuracy = 0.0
+    for i in range(test_batch):
+        batch = FLAGS.batch_size*i
+        batch_plus = FLAGS.batch_size*(i+1)
+        if batch_plus > train_len: batch_plus = train_len
+        test_accuracy += sess.run(acc, feed_dict={
+                images_placeholder: test_image[batch:batch_plus],
+                labels_placeholder: test_label[batch:batch_plus],
                 keep_prob: 1.0})
-            summary_writer.add_summary(summary_str, step)
+        if i is not 0: test_accuracy /= 2.0
+    print "test accuracy %g"%(test_accuracy)
 
-#    # 訓練が終了したらテストデータに対する精度を表示
-#    print "train finish!!\n\n\ntest start."
-#    if test_len % FLAGS.batch_size is 0:
-#        test_batch = test_len/FLAGS.batch_size
-#    else:
-#        test_batch = (test_len/FLAGS.batch_size)+1
-#        print "test_batch = "+str(test_batch)
-#    test_accuracy = 0.0
-#    for i in range(test_batch):
-#        batch = FLAGS.batch_size*i
-#        batch_plus = FLAGS.batch_size*(i+1)
-#        if batch_plus > train_len: batch_plus = train_len
-#        test_accuracy += sess.run(acc, feed_dict={
-#                images_placeholder: test_image[batch:batch_plus],
-#                labels_placeholder: test_label[batch:batch_plus],
-#                keep_prob: 1.0})
-#        if i is not 0: test_accuracy /= 2.0
-#    print "test accuracy %g"%(test_accuracy)
     # 訓練が終了したらテストデータに対する精度を表示. 対評価データ
-    elapsed_time = time.time() - start
-    print("elapsed_time:{0}".format(elapsed_time)) + "sec"
-
     print "test accuracy %g"%sess.run(acc, feed_dict={
         images_placeholder: test_image,
         labels_placeholder: test_label,
         keep_prob: 1.0})
+
+    # 実行時間を表示
+    elapsed_time = time.time() - start
+    print ("elapsed_time:{0}".format(elapsed_time)) + "[sec]"
 
     # 最終的なモデルを保存
     save_path = saver.save(sess, FLAGS.save_model)
